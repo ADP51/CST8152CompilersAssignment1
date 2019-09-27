@@ -327,26 +327,47 @@ char b_rflag(Buffer* const pBD) {
 }
 
 short b_retract(Buffer* const pBD) {
-
+	if(pBD == NULL){
+		return RT_FAIL_1;
+	}
+	
+	pBD->getc_offset--;
+	return pBD->getc_offset;
 }
 
-short b_reset(Buffer* const pBD)
-{
-
+short b_reset(Buffer* const pBD) {
+	if(pBD == NULL){
+		return RT_FAIL_1;
+	}
+	
+	pBD->getc_offset = pBD->markc_offset;
+	return pBD->getc_offset;
 }
 
-short b_getcoffset(Buffer * const pBD)
-{
-
+short b_getcoffset(Buffer * const pBD) {
+	if(pBD == NULL){
+		return RT_FAIL_1;
+	}
+	return pBD->getc_offset;
 }
 
-int b_rewind(Buffer* const pBD)
-{
-
+int b_rewind(Buffer* const pBD) {
+	if(pBD == NULL){
+		return RT_FAIL_1;
+	}
+	
+	pBD->getc_offset = 0;
+	pBD->markc_offset = 0;
+	return 0;
 }
 
-char* b_location(Buffer* const pBD)
-{
-
+char* b_location(Buffer* const pBD) {
+	if(pBD == NULL){
+		return RT_FAIL_1;
+	}
+	
+	char * temp; /* The pointer to cb_head at markc_offset */
+	temp = pBD->cb_head[pBD->markc_offset];
+	return temp;
 }
 
