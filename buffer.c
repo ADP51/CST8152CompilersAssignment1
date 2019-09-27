@@ -68,7 +68,7 @@ Buffer* b_addc(pBuffer const pBD, char symbol)
 	}
 	
 	if(b_isFull(pBD) == 0){ /*If buffer is not full*/
-		pBD->cb_head[addc_offset] = symbol; /*Add sybol to buffer and increment addc_offset*/
+		strcpy(pBD->cb_head[addc_offset], symbol); /*Add sybol to buffer and increment addc_offset*/
 		pBD->addc_offset++;
 		return pBD;
 	} 
@@ -90,7 +90,7 @@ Buffer* b_addc(pBuffer const pBD, char symbol)
 	
 	if(pBD->mode == '-1'){
 		available_space = (SHRT_MAX - 1) - pBD->capacity;
-		new_inc = available_space * pBD->inc_factor / 100;
+		new_inc = available_space * (unsigned char)pBD->inc_factor / 100;
 		new_cap = pBD->capacity + new_inc;
 		
 		if(0 > new_cap || new_cap > (SHRT_MAX - 1)){
@@ -108,7 +108,7 @@ Buffer* b_addc(pBuffer const pBD, char symbol)
 	pBD->cb_head = new_Array;
 	new_Array = NULL;
 	pBD->flags &= SET_R_FLAG;/*Need to set r_flag to 1*/
-	pBD->cb_head[addc_offset] = symbol; /*Add sybol to buffer and increment addc_offset*/
+	strcpy(pBD->cb_head[addc_offset], symbol); /*Add sybol to buffer and increment addc_offset*/
 	pBD->addc_offset++;
 	pBD->capacity = new_cap;
 	return pBD;
@@ -139,8 +139,7 @@ int b_free(Buffer * const pBD){
 	free(pBD);
 }
 
-int b_isFull(Buffer* const pBD)
-{
+int b_isFull(Buffer* const pBD) {
 	if (pBD == NULL) {
 		return RT_FAIL_1;
 	}
@@ -150,11 +149,9 @@ int b_isFull(Buffer* const pBD)
 	}
 
 	return 0;
-	
 }
 
-short b_limit(Buffer* const pBD)
-{
+short b_limit(Buffer* const pBD) {
 	if (pBD == NULL)
 	{
 		return RT_FAIL_1;
@@ -163,16 +160,14 @@ short b_limit(Buffer* const pBD)
 	return addc_offset - 1;
 }
 
-short b_capacity(Buffer* pBD)
-{
+short b_capacity(Buffer* pBD) {
 	if (pBD == NULL) {
 		return RT_FAIL_1;
 	}
 	return pBD->capacity;
 }
 
-short b_mark(pBuffer const pBD, short mark)
-{
+short b_mark(pBuffer const pBD, short mark) {
 	if (pBD == NULL) {
 		return RT_FAIL_1;
 	}
