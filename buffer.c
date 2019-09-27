@@ -1,13 +1,5 @@
 #include <string.h>
-#include "buffer.h";
-
-#define DEFAULT_FLAGS  0xFFFC
-#define SET_EOB  0xFFFE
-#define RESET_EOB 0xFFFD
-#define CHECK_EOB 0x002
-#define SET_R_FLAG 0xFFFD
-#define RESET_R_FLAG 0xFFFE
-#define CHECK_R_FLAG 0x0001
+#include "buffer.h"
 
 Buffer* b_allocate(short init_capacity, char inc_factor, char o_mode) {
 	
@@ -270,13 +262,17 @@ int b_eob(Buffer * const pBD)
 		return RT_FAIL_1;
 	}
 	
-	return 
+	return (pBD->flags >> 1) & 1 /* Will return the EOB bit */
 }
 
-int b_print(Buffer* const pBD, char nl)
-{
+int b_print(Buffer* const pBD, char nl) {
+	if(pBD == NULL || nl ==NULL){
+		return RT_FAIL_1;
+	}
+	
 	int counter = 0;
-	while (b_eob(pBD)) {
+	
+	while (b_eob(pBD) == 0) {
 		printf("%c", b_getc(pBD));
 		counter++;
 	}
@@ -287,8 +283,6 @@ int b_print(Buffer* const pBD, char nl)
 	return counter;
 }
 
-Buffer* b_compact(Buffer* const pBD, char symbol)
-{
 	/*For all operational modes of the buffer the function shrinks (or in some cases may expand) the
 	buffer to a new capacity. The new capacity is the current limit plus a space for one more character.
 	In other words the new capacity is addc_offset + 1 converted to bytes. The function uses realloc()
@@ -298,15 +292,41 @@ Buffer* b_compact(Buffer* const pBD, char symbol)
 	addc_offset. The function must return NULL if for some reason it cannot to perform the required
 	operation. It must set the r_flag bit appropriately.
 	*/
+Buffer* b_compact(Buffer* const pBD, char symbol) {
+	if(pBD == NULL){
+		return RT_FAIL_1;
+	}
+	
+	char * temp_array; /* temp array for realloc */
+	short new_cap; /* The new capacity */
+	
+	new_cap = pBD->addc_offset + 1;
+	if(new_cap < 0 || new_cap == SHRT_MAX){
+		return NULL;
+	}
+	
+	if(temp_array = realloc(pBD->cb_head, sizeof(char)*new_cap) == NULL){
+		return NULL;
+	}
+	
+	pBD->addc_offset++;
+	pBD->cb_head = temp_array;
+	temp_array = NULL;
+	pBD->capacity = new_cap;
+	pBD->flags |= SET_R_FLAG
+	strcpy(pBD->cb_head[pBD->addc_offset], symbol);
+	return pBD;
 }
 
-char b_rflag(Buffer* const pBD)
-{
-
+char b_rflag(Buffer* const pBD) {
+	if(pBD == NULL){
+		return RT_FAIL_1;
+	}
+	
+	return pBD->flags & 1 /* Will return the EOB bit */
 }
 
-short b_retract(Buffer* const pBD)
-{
+short b_retract(Buffer* const pBD) {
 
 }
 

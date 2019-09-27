@@ -34,12 +34,12 @@
 
 /* Add your bit-masks constant definitions here */
 #define DEFAULT_FLAGS  0xFFFC
-#define SET_EOB  
-#define RESET_EOB 
-#define CHECK_EOB 
-#define SET_R_FLAG 
-#define RESET_R_FLAG 
-#define CHECK_R_FLAG 
+#define SET_EOB  0xFFFE
+#define RESET_EOB 0xFFFD
+#define CHECK_EOB 0x002
+#define SET_R_FLAG 0xFFFD
+#define RESET_R_FLAG 0xFFFE
+#define CHECK_R_FLAG 0x0001
 
 /* user data type declarations */
 typedef struct BufferDescriptor {
