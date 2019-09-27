@@ -72,59 +72,117 @@ Buffer* b_addc(pBuffer const pBD, char symbol)
 	short new_inc; /* The new inc_factor */
 
 	if (pBD->flags & CHECK_R_FLAG == 1) {
-
+		pBd->flags &= RESET_R_FLAG; /* Reset r_flag if need be */
 	}
+	
+	if(b_isFull(pBD) == 0){ /*If buffer is not full*/
+		pBD->cb_head[addc_offset] = symbol; /*Add sybol to buffer and increment addc_offset*/
+		pBD->addc_offset++;
+		return pBD;
+	} 
+	
+	if(pBD->mode == '0') {
+		return NULL; /*If the buffer is full and Operational mode is 0 then return null*/
+	}
+	
+	if(pBD->mode == '1') {
+		new_cap = pBD->capacity + (short)pBD->inc_factor; /* Creates new capacity by adding inc_factor to current cap */
+		if(new_cap > 0 && new_cap > (SHRT_MAX - 1)) {
+			new_cap = SHRT_MAX - 1; /* If new_cap is positive but exceeds the max allowed value reassing to the max value */
+		} 
+		
+		if(new_cap < 0){ /* If overflow has occured return NULL */
+			return NULL;
+		}
+	}
+	
+	if(pBD->mode == '-1'){
+		available_space = (SHRT_MAX - 1) - pBD->capacity;
+		new_inc = available_space * pBD->inc_factor / 100;
+		new_cap = pBD->capacity + new_inc;
+		
+		if(0 > new_cap || new_cap > (SHRT_MAX - 1)){
+			new_cap = SHRT_MAX - 1; /* If the new_cap is larger than the allowed max but the current cap is not full assign max cap */
+		} 
+		
+		
+	}
+	
+	new_Array = realloc(pBD->cb_head, new_cap); /* Reallocate buffer size with new_cap*/
+	if(new_Array == NULL){ /* Check to make sure realloc worked */
+		return NULL;
+	}
+	
+	pBD->cb_head = new_Array;
+	new_Array = NULL;
+	pBD->flags &= SET_R_FLAG;/*Need to set r_flag to 1*/
+	pBD->cb_head[addc_offset] = symbol; /*Add sybol to buffer and increment addc_offset*/
+	pBD->addc_offset++;
+	pBD->capacity = new_cap;
+	return pBD;
 }
 
 int b_clear(Buffer* const pBD)
 {
-	if (pBD == NULL) 
-	{
-		return 0;
+	if (pBD == NULL) {
+		return RT_FAIL_1;
 	}
+	
+	pBD->addc_offset = 0;
+	pBD->getc_offset = 0;
+	pBD->mark_offset = 0;
+	strcpy(pBD->mode, '0');
+	pBD->flags &= RESET_R_FLAG;
+	pBD->flags &= RESET_EOB;
 
+	return TRUE;
+}
+
+int b_free(Buffer * const pBD){
+	if(pBD == NULL){
+		return RT_FAIL_1;
+	}
+	
 	free(pBD->cb_head);
 	free(pBD);
 }
 
 int b_isFull(Buffer* const pBD)
 {
-	if (pBD == NULL)
-	{
-		return -1;
+	if (pBD == NULL) {
+		return RT_FAIL_1;
 	}
-	else if (strlen(pBD->cb_head) == 199) 
-	{
+	
+	if (pBD->addc_offset == pBD->capacity) {
 		return 1;
 	}
-	else 
-	{
-		return 0;
-	}
+
+	return 0;
+	
 }
 
 short b_limit(Buffer* const pBD)
 {
 	if (pBD == NULL)
 	{
-		return -1;
+		return RT_FAIL_1;
 	}
 
-	return (short)strlen(pBD->cb_head);
+	return addc_offset - 1;
 }
 
 short b_capacity(Buffer* pBD)
 {
 	if (pBD == NULL) {
-		return -1;
+		return RT_FAIL_1;
 	}
-	return (short)sizeof(pBD->cb_head);
+	return pBD->capacity;
 }
 
 short b_mark(pBuffer const pBD, short mark)
 {
 	if (pBD == NULL) {
-		return -1;
+		return RT_FAIL_1;
 	}
 
 	if (0 <= mark <= pBD->addc_offset)
@@ -133,38 +191,49 @@ short b_mark(pBuffer const pBD, short mark)
 		return pBD->markc_offset;
 	}
 	else {
-		return -1;
+		return RT_FAIL_1;
 	}
 }
 
 /*This method doesn't specify -1 to return just says to notify calling function*/
-int b_mode(Buffer* const pBD)
-{
+int b_mode(Buffer* const pBD){
 	if (pBD == NULL) {
-		return -1;
+		return RT_FAIL_1;
 	}
 
 	return pBD->mode;
 }
 
-size_t b_incfactor(Buffer* const pBD)
-{
+size_t b_incfactor(Buffer* const pBD){
 	if (pBD == NULL) {
 		return 0x100;
 	}
 
-	return fabs(pBD->inc_factor);
+	return (unsigned char)pBD->inc_factor;
 }
 
-int b_load(FILE* const fi, Buffer* const pBD)
-{
+int b_load(FILE* const fi, Buffer* const pBD){
+	if(pBD == NULL || fi == NULL){
+		return RT_FAIL_1;
+	}
+	char next; /*The next char from the file*/
 	
+	while(1){
+		next = fgetc(fi);
+		if(feof(fi)){ /*Detect end of file before calling b_addc()*/
+			break;
+		}
+		if(b_addc(pBD, next) == NULL){ 
+			ungetc(next,fi);
+			return LOAD_FAIL;
+		}
+	}
 }
 
 int b_isempty(Buffer* const pBD)
 {
 	if (pBD == NULL) {
-		return -1;
+		return RT_FAIL_1;
 	}
 
 	if (pBD->addc_offset == 0) {
@@ -178,16 +247,15 @@ int b_isempty(Buffer* const pBD)
 char b_getc(Buffer* const pBD)
 {
 	if (pBD == NULL) {
-		return -2;
+		return RT_FAIL_2;
 	}
 
 	if (pBD->getc_offset == pBD->addc_offset) {
-		/*Using bitwise operation it sets the flags field eob bit to 1 and returns 0*/
+		pBD->flags |= SET_EOB; /*Using bitwise operation it sets the flags field eob bit to 1 and returns 0*/
+		return 0;
 	}
-	else {
-		/* using bitwise operation sets eob to 0*/
-	}
-
+	
+	pBD->flags &= RESET_EOB;/* using bitwise operation sets eob to 0*/
 	char temp = pBD->getc_offset;
 	pBD->getc_offset++;
 	return temp;
@@ -198,6 +266,11 @@ int b_eob(Buffer * const pBD)
 	/*The function returns the value of the flags field determined only by the eob bit.
 	A bitwise operation must be used to return the value of the flags field. If a run-time error is
 	possible, it should return -1.*/
+	if(pBD == NULL){
+		return RT_FAIL_1;
+	}
+	
+	return 
 }
 
 int b_print(Buffer* const pBD, char nl)
